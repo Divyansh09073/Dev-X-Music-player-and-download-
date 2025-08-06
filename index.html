@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dev Player - Download Music & Video</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @property --angle { syntax: '<angle>'; initial-value: 0deg; inherits: false; }
+        :root {
+            --primary-accent: #00e5ff; --secondary-accent: #00c8ff; --bg-color: #0a1128;
+            --card-bg: rgba(10, 20, 40, 0.8); --text-primary: #e0e0e0; --text-header: #ffffff;
+            --glow-color: #00e5ff; --button-bg-start: #00d4ff; --button-bg-end: #0099ff;
+            --button-text: #0a1128; --button-shadow: rgba(0, 229, 255, 0.5);
+        }
+        body.purple-mode {
+            --primary-accent: #a855f7; --secondary-accent: #d8b4fe; --bg-color: #f0e6ff;
+            --card-bg: rgba(255, 255, 255, 0.9); --text-primary: #4c1d95; --text-header: #3b0764;
+            --glow-color: #a855f7; --button-bg-start: #a855f7; --button-bg-end: #9333ea;
+            --button-text: #ffffff; --button-shadow: rgba(168, 85, 247, 0.4);
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Poppins', 'Segoe UI', sans-serif; background-color: var(--bg-color); color: var(--text-primary); min-height: 100vh; position: relative; overflow-x: hidden; }
+        video.bg-video { position: fixed; right: 0; bottom: 0; min-width: 100%; min-height: 100%; z-index: -1; object-fit: cover; filter: brightness(0.3) blur(2px); opacity: 0.8; }
+        .page-wrapper { transition: filter 0.3s ease-in-out; }
+        body.drawer-open .page-wrapper, body.popup-active .page-wrapper { filter: blur(10px) brightness(0.6); pointer-events: none; }
+        .page-wrapper { display: flex; flex-direction: column; min-height: 100vh; }
+        .container { width: 100%; max-width: 1200px; margin: 0 auto; padding: 20px; flex-grow: 1; }
+        .header-buttons-left { position: fixed; top: 20px; left: 20px; z-index: 2002; }
+        .header-buttons-right { position: fixed; top: 20px; right: 20px; z-index: 2002; }
+        .icon-btn { padding: 12px; font-size: 1.2rem; background: rgba(255,255,255,0.1); backdrop-filter: blur(10px); color: var(--primary-accent); border: 1px solid rgba(255,255,255,0.2); border-radius: 50%; box-shadow: 0 4px 15px rgba(0,0,0,0.3); cursor: pointer; transition: all 0.3s ease; width: 45px; height: 45px; display: flex; align-items: center; justify-content: center; }
+        .header { text-align: center; margin-bottom: 30px; margin-top: 60px; }
+        .logo { display: flex; align-items: center; justify-content: center; margin-bottom: 15px; }
+        .logo-icon { font-size: 2.8rem; margin-right: 15px; color: var(--primary-accent); text-shadow: 0 0 10px var(--glow-color); animation: pulse 1.5s infinite alternate; }
+        @keyframes pulse { from { transform: scale(1); } to { transform: scale(1.1); } }
+        .neon-text { font-size: 2.8rem; font-weight: 700; }
+        .neon-text span { position: relative; display: inline-block; animation: wavy 1.8s ease-in-out infinite; background: linear-gradient(90deg, var(--primary-accent), var(--secondary-accent)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+        .tagline { font-size: 1.1rem; color: var(--text-primary); margin-top: 10px; }
+        .rgb-border-container { position: relative; background: var(--card-bg); border-radius: 22px; padding: 25px; max-width: 700px; margin: 0 auto 30px; }
+        .rgb-border-container::before { content: ''; position: absolute; inset: -2px; z-index: -1; border-radius: 24px; background: conic-gradient(from var(--angle), #007cf0, #00dfd8, #ff007c, #9300ff, #007cf0); animation: rotate-angle 4s linear infinite; }
+        @keyframes rotate-angle { to { --angle: 360deg; } }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        input[type="text"] { padding: 15px 20px; font-size: 1rem; background: rgba(0,0,0,0.3); color: var(--text-primary); border: 2px solid var(--secondary-accent); border-radius: 10px; width: 100%; outline: none; }
+        .search-btn { display: block; width: 100%; padding: 15px; margin-top: 20px; background: linear-gradient(45deg, var(--button-bg-start), var(--button-bg-end)); color: var(--button-text); border: none; border-radius: 10px; font-size: 1.1rem; font-weight: 600; cursor: pointer; }
+        .feature-card { background: var(--card-bg); backdrop-filter: blur(5px); border-radius: 15px; padding: 25px; text-align: center; border: 1px solid rgba(255,255,255,0.1); animation: pulse-shadow 3s infinite alternate; }
+        @keyframes pulse-shadow { from { box-shadow: 0 0 10px -5px var(--glow-color); } to { box-shadow: 0 0 25px 5px var(--glow-color); } }
+        #initialContent { margin-top: 40px; }
+        .section-title { font-size: 1.8rem; text-align: center; margin-bottom: 20px; color: var(--text-header); }
+        .features { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; }
+        .feature-icon { font-size: 2.5rem; margin-bottom: 15px; color: var(--primary-accent); }
+        .feature-title { font-size: 1.2rem; margin-bottom: 10px; color: var(--text-header); }
+        #resultContainer { max-width: 450px; margin: 30px auto 0; }
+        .result-card { background: var(--card-bg); backdrop-filter: blur(10px); border-radius: 15px; overflow: hidden; border: 1px solid rgba(255,255,255,0.1); display: flex; flex-direction: column; }
+        .result-card-main { cursor: pointer; }
+        .result-card .thumbnail { width: 100%; height: 200px; object-fit: cover; }
+        .result-card .card-content { padding: 15px; flex-grow: 1; display: flex; justify-content: space-between; align-items: flex-start; }
+        .result-card .title { font-size: 1.1rem; font-weight: 600; color: var(--text-header); margin-right: 15px; }
+        .result-actions { display: flex; gap: 10px; }
+        .action-btn { background: transparent; border: none; color: var(--text-primary); font-size: 1.2rem; cursor: pointer; transition: color 0.2s, transform 0.2s; padding: 5px; }
+        .action-btn:hover { color: var(--primary-accent); transform: scale(1.2); }
+        .fav-btn.favorited, #playerFavBtn.favorited { color: #ff007c; }
+        #drawerMenu { position: fixed; top: 0; left: -300px; width: 280px; height: 100%; background-color: var(--bg-color); z-index: 2001; box-shadow: 5px 0 25px rgba(0,0,0,0.5); transition: left 0.4s ease; display: flex; flex-direction: column; border-right: 1px solid var(--primary-accent); }
+        #drawerMenu.open { left: 0; }
+        #drawerOverlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 2000; opacity: 0; pointer-events: none; transition: opacity 0.4s ease; }
+        body.drawer-open #drawerOverlay { opacity: 1; pointer-events: all; }
+        .drawer-header { padding: 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.1); }
+        .drawer-header h3 { color: var(--primary-accent); }
+        .drawer-close { font-size: 2rem; cursor: pointer; color: var(--text-primary); }
+        .drawer-content a { color: var(--text-primary); text-decoration: none; display: flex; align-items: center; padding: 15px 20px; border-bottom: 1px solid rgba(255,255,255,0.05); transition: all 0.2s; }
+        .drawer-content a:hover { background: var(--primary-accent); color: var(--button-text); }
+        .drawer-content a i { margin-right: 15px; width: 20px; text-align: center; }
+        .popup { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 1000; display: flex; justify-content: center; align-items: center; opacity: 0; pointer-events: none; transition: opacity 0.3s ease; }
+        .popup.active { opacity: 1; pointer-events: all; }
+        .popup-content { background: var(--bg-color); padding: 25px; border-radius: 20px; box-shadow: 0 0 25px 5px var(--glow-color); text-align: center; max-width: 450px; width: 90%; position: relative; border: 2px solid var(--primary-accent); animation: fadeInScale 0.3s ease-out forwards; }
+        @keyframes fadeInScale { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
+        .popup-close { position: absolute; top: 10px; right: 15px; font-size: 2rem; color: var(--text-primary); cursor: pointer; z-index: 10;}
+        #playerMediaContainer { width: 100%; margin-bottom: 15px; position: relative; background: #000; border-radius: 10px; overflow: hidden; min-height: 200px; display:flex; align-items:center; justify-content:center;}
+        #popupVideoPlayer, #popupAudioPlayer { width: 100%; height: auto; max-height: 200px; display: none; }
+        #albumArt {
+            width: 160px; height: 160px; border-radius: 50%;
+            object-fit: cover; display: none; border: 3px solid var(--primary-accent);
+            box-shadow: 0 0 15px var(--primary-accent);
+        }
+        #albumArt.rotating { animation: spin 10s linear infinite; }
+        .player-controls { width: 100%; }
+        #seekBar, #volumeBar { width: 100%; -webkit-appearance: none; appearance: none; height: 5px; background: rgba(128,128,128,0.3); border-radius: 5px; outline: none; cursor: pointer; transition: background 0.2s; }
+        #seekBar::-webkit-slider-thumb, #volumeBar::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 15px; height: 15px; background: var(--primary-accent); border-radius: 50%; cursor: pointer; }
+        .main-controls { display: flex; justify-content: space-between; align-items: center; padding: 0 10px; margin: 15px 0; }
+        .volume-container { display: flex; align-items: center; gap: 10px; max-width: 150px; margin: 0 auto; }
+        .page-footer { background: rgba(0,0,0,0.2); backdrop-filter: blur(10px); text-align: center; padding: 30px 20px; margin-top: 40px; }
+        body.purple-mode .page-footer { background: rgba(255,255,255,0.5); }
+        .footer-container { max-width: 1200px; margin: 0 auto; display: grid; grid-template-columns: 1fr; gap: 20px; }
+        .more-tools-btn { display: inline-block; background: linear-gradient(45deg, var(--button-bg-start), var(--button-bg-end)); color: var(--button-text); padding: 12px 30px; border-radius: 50px; text-decoration: none; font-weight: 600; box-shadow: 0 5px 15px var(--button-shadow); transition: transform 0.2s; }
+        .footer-links a { color: var(--text-primary); margin: 0 10px; text-decoration: none; }
+        .copyright { margin-top: 20px; font-size: 0.9rem; opacity: 0.7; }
+        .dialog-option-btn { padding: 15px; background: rgba(0,0,0,0.1); border: 1px solid var(--secondary-accent); border-radius: 10px; color: var(--text-primary); cursor: pointer; transition: all 0.2s; font-size: 1rem; width: 100%; }
+        .history-item { display: flex; align-items: center; gap: 15px; text-align: left; padding: 10px; background: rgba(0,0,0,0.2); border-radius:8px; cursor:pointer; transition: background .2s;}
+        .history-item:hover { background: rgba(0,0,0,0.4); }
+        .history-item img { width: 50px; height: 50px; object-fit: cover; border-radius: 4px; }
+    </style>
+</head>
+<body class="">
+
+<div class="page-wrapper">
+    <video class="bg-video" autoplay muted loop><source src="https://cdn.pixabay.com/video/2017/11/06/9320-242082381_large.mp4" type="video/mp4"></video>
+    <div class="container">
+        <header class="header">
+            <div class="logo"><div class="logo-icon"><i class="fas fa-music"></i></div><h1 class="neon-text">JS Player</h1></div>
+            <p class="tagline">Search, Play, and Download your favorite music & videos from: Josim VIP Music 🎶🎵🎶</p>
+        </header>
+        <div class="rgb-border-container">
+            <input type="text" id="query" placeholder="🎵 Type song name" autocomplete="off" />
+            <button class="search-btn" onclick="performSearch()">Search Music 🎵</button>
+        </div>
+        <div class="loader" style="display: none; width: 50px; height: 50px; margin: 40px auto; border: 5px solid rgba(128,128,128,0.2); border-top-color: var(--primary-accent); border-radius:50%; animation: spin 1s infinite linear;"></div>
+        <div id="status" style="text-align: center; margin: 20px; font-weight: 500;"></div>
+        <div id="resultContainer"></div>
+        <div id="initialContent">
+            <h2 class="section-title">Why Choose JS Player?</h2>
+            <div class="features">
+              <div class="feature-card"><div class="feature-icon"><i class="fas fa-bolt"></i></div><h3 class="feature-title">Lightning Fast</h3><p>Instantly find and play any song or video.</p></div>
+              <div class="feature-card"><div class="feature-icon"><i class="fas fa-trophy"></i></div><h3 class="feature-title">High Quality</h3><p>Get the best quality MP3 and MP4 files available.</p></div>
+              <div class="feature-card"><div class="feature-icon"><i class="fas fa-shield-alt"></i></div><h3 class="feature-title">Safe & Secure</h3><p>100% virus-free downloads with no hidden malware.</p></div>
+              <div class="feature-card"><div class="feature-icon"><i class="fas fa-infinity"></i></div><h3 class="feature-title">Unlimited Usage</h3><p>Download as many songs as you want with no restrictions.</p></div>
+            </div>
+        </div>
+    </div>
+    <footer class="page-footer">
+        <div class="footer-container">
+            <a href="https://bio.site/josimsv1" target="_blank" class="more-tools-btn"><i class="fas fa-tools"></i> More Josim VIP Tools</a>
+            <div class="footer-links" style="margin-top: 25px;">
+                <a href="javascript:void(0)" onclick="showLegalPopup('privacy')">Privacy Policy</a>
+                <a href="javascript:void(0)" onclick="showLegalPopup('terms')">Terms & Conditions</a>
+                <a href="https://wa.me/919735333749" target="_blank">Support</a>
+            </div>
+            <div class="copyright">Powered by: © <b>Divyansh Deewana</b> – All Rights Reserved 2025</div>
+        </div>
+    </footer>
+</div>
+
+<div class="header-buttons-left">
+    <button class="icon-btn" title="Open Menu" onclick="openDrawer()"><i class="fas fa-bars"></i></button>
+</div>
+<div class="header-buttons-right">
+    <button class="icon-btn" id="themeBtn" title="Toggle Theme" onclick="toggleTheme()"><i class="fas fa-moon"></i></button>
+</div>
+
+<div id="drawerMenu">
+    <div class="drawer-header"><h3>Menu</h3><span class="drawer-close" onclick="closeDrawer()">&times;</span></div>
+    <div class="drawer-content">
+        <a href="javascript:void(0)" onclick="showHistory('favorites')"><i class="fas fa-heart"></i> Favourite video/audio</a>
+        <a href="javascript:void(0)" onclick="showHistory('search')"><i class="fas fa-history"></i> Search History</a>
+        <a href="javascript:void(0)" onclick="showHistory('downloads')"><i class="fas fa-download"></i> Download History</a>
+        <a href="https://wa.me/918882829982?text=Hello%20from%20JS%20Music%20Player" target="_blank"><i class="fab fa-whatsapp"></i> Contact Developer</a>
+        <a href="https://wa.me/918882829982?text=I'm%20interested%20in%20a%20website/app" target="_blank"><i class="fas fa-code"></i> Contact for Create Website/App</a>
+        <a href="https://t.me/dark_j_hacking" target="_blank"><i class="fab fa-telegram"></i> Contact Telegram</a>
+        <a href="https://bio.site/josimsv1" target="_blank"><i class="fas fa-tools"></i> Josim VIP Tools</a>
+    </div>
+</div>
+<div id="drawerOverlay" onclick="closeDrawer()"></div>
+<div id="dialogPopup" class="popup"><div class="popup-content"><span class="popup-close" onclick="closeDialog()">&times;</span><h3 id="dialogTitle" style="color: var(--text-header); margin-bottom: 20px;"></h3><div id="dialogBody" style="display: flex; flex-direction: column; gap: 10px;"></div></div></div>
+
+<div id="musicPlayerPopup" class="popup">
+    <div class="popup-content">
+        <span class="popup-close" onclick="closePlayer()">&times;</span>
+        <div id="playerInfo" style="margin-bottom: 15px; font-weight: bold; color: var(--text-header); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"></div>
+        <div id="playerMediaContainer">
+            <video id="popupVideoPlayer" playsinline></video>
+            <audio id="popupAudioPlayer" loop></audio>
+            <img id="albumArt" alt="Album Art">
+        </div>
+        <div class="player-controls">
+            <input type="range" id="seekBar" value="0" step="1" style="width: 100%; margin-bottom: 10px;">
+            <div id="timeDisplay" style="text-align: right; font-size: 0.9em; margin-bottom: 15px;">00:00 / 00:00</div>
+            <div class="main-controls">
+                <button id="playerFavBtn" class="action-btn" title="Favorite"><i class="fas fa-heart"></i></button>
+                <button class="action-btn" id="rewindBtn"><i class="fas fa-backward"></i></button>
+                <button class="action-btn" id="playPauseBtn" style="font-size: 1.8rem;"><i class="fas fa-play"></i></button>
+                <button class="action-btn" id="forwardBtn"><i class="fas fa-forward"></i></button>
+                <button id="playerDownloadBtn" class="action-btn" title="Download Current Media"><i class="fas fa-download"></i></button>
+            </div>
+            <div class="volume-container">
+                <i class="fas fa-volume-down"></i>
+                <input type="range" id="volumeBar" min="0" max="1" step="0.05" value="1" style="width: 100%;">
+                <i class="fas fa-volume-up"></i>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // --- DOM Elements ---
+    const queryInput = document.getElementById("query");
+    const loader = document.querySelector(".loader");
+    const resultContainer = document.getElementById("resultContainer");
+    const initialContent = document.getElementById("initialContent");
+    const dialogPopup = document.getElementById("dialogPopup");
+    const dialogTitle = document.getElementById("dialogTitle");
+    const dialogBody = document.getElementById("dialogBody");
+    const drawerMenu = document.getElementById('drawerMenu');
+
+    // --- State Variables ---
+    let apiDataCache = null;
+
+    // --- Player Variables ---
+    let activePlayer = null;
+    let currentMediaType = null;
+    let playerPopup, videoPlayerEl, audioPlayerEl, albumArt, playerInfo, seekBar, playPauseBtn, timeDisplay, volumeBar, playerDownloadBtn, playerFavBtn;
+
+    // --- Event Listeners & Initial Setup ---
+    document.addEventListener('DOMContentLoaded', () => {
+        setupWavyText('DEV Player', document.querySelector('.neon-text'));
+        resultContainer.addEventListener('click', handleResultCardClick);
+        
+        playerPopup = document.getElementById('musicPlayerPopup');
+        videoPlayerEl = document.getElementById('popupVideoPlayer');
+        audioPlayerEl = document.getElementById('popupAudioPlayer');
+        albumArt = document.getElementById('albumArt');
+        playerInfo = document.getElementById('playerInfo');
+        seekBar = document.getElementById('seekBar');
+        playPauseBtn = document.getElementById('playPauseBtn');
+        timeDisplay = document.getElementById('timeDisplay');
+        volumeBar = document.getElementById('volumeBar');
+        playerDownloadBtn = document.getElementById('playerDownloadBtn');
+        playerFavBtn = document.getElementById('playerFavBtn');
+
+        playPauseBtn.addEventListener('click', togglePlayPause);
+        seekBar.addEventListener('input', seekMedia);
+        volumeBar.addEventListener('input', setVolume);
+        document.getElementById('rewindBtn').addEventListener('click', () => { if (activePlayer) activePlayer.currentTime -= 10; });
+        document.getElementById('forwardBtn').addEventListener('click', () => { if (activePlayer) activePlayer.currentTime += 10; });
+        playerDownloadBtn.addEventListener('click', downloadCurrentMedia);
+        p
